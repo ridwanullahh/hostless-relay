@@ -11,14 +11,19 @@ for c in hostless git jq curl; do command -v "$c" >/dev/null || die "missing too
 
 SUM="${GITHUB_STEP_SUMMARY:-/dev/null}"
 
-mask_env_payload() {
-  if [ -n "${HOSTLESS_ENVPAY:-}" ]; then
-    printf '%s' "$HOSTLESS_ENVPAY" | base64 -d 2>/dev/null | while IFS= read -r line; do
-      case "$line" in ''|\#*) continue;; esac
-      v="${line#*=}"
-      [ -n "$v" ] && echo "::add-mask::$v"
-    done
-  fi
+app_env_payload() { # echo b64 payload of $APP from FLEET_ENVS json
+  [ -n "${APP:-}" ] || return 1
+  printf '%s' "${FLEET_ENVS:-}" | jq -r --arg app "$APP" '.[$app] // ""'
+}
+
+mask_env_payload() { # decode payload, mask every value
+  local pay; pay=$(app_env_payload || true)
+  [ -n "$pay" ] || return 0
+  printf '%s' "$pay" | base64 -d 2>/dev/null | while IFS= read -r line; do
+    case "$line" in ''|\#*) continue;; esac
+    v="${line#*=}"
+    [ -n "$v" ] && echo "::add-mask::$v"
+  done
 }
 
 write_result() { # $1 op  $2 payload-file
@@ -75,8 +80,9 @@ case "$OP" in
   env-set)
     mask_env_payload
     [ -n "${APP:-}" ] || die "app required"
-    [ -n "${HOSTLESS_ENVPAY:-}" ] || die "secret HV_${APP}_ENVS missing"
-    umask 077; TMPENV=$(mktemp); printf '%s' "$HOSTLESS_ENVPAY" | base64 -d > "$TMPENV"
+    PAY=$(app_env_payload) || die "secret FLEET_ENVS missing"
+    [ -n "$PAY" ] || die "no env payload for $APP in FLEET_ENVS"
+    umask 077; TMPENV=$(mktemp); printf '%s' "$PAY" | base64 -d > "$TMPENV"
     mapfile -t PAIRS < <(grep -vE '^\s*(#|$)' "$TMPENV")
     rm -f "$TMPENV"
     say "setting ${#PAIRS[@]} env vars on $APP (values masked)"

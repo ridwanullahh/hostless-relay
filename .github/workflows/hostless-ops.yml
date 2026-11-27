@@ -78,5 +78,5 @@ jobs:
           STARTCMD: ${{ inputs.startcmd }}
           HEALTHPATH: ${{ inputs.healthpath }}
           HOSTLESSFILE: ${{ inputs.hostlessfile }}
-          HOSTLESS_ENVPAY: ${{ secrets[format('HV_{0}_ENVS', inputs.app)] }}
+          FLEET_ENVS: ${{ secrets.FLEET_ENVS }}
         run: bash scripts/run.sh
