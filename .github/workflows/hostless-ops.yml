@@ -43,6 +43,18 @@ on:
         description: "hostless.yaml path override"
         required: false
         default: ""
+      api_method:
+        description: "HTTP method for api-call op"
+        required: false
+        default: "GET"
+      api_path:
+        description: "API path for api-call op (e.g. /v1/apps)"
+        required: false
+        default: "/v1"
+      api_body_b64:
+        description: "base64 JSON body for api-call op"
+        required: false
+        default: ""
 
 permissions:
   contents: write
@@ -79,4 +91,7 @@ jobs:
           HEALTHPATH: ${{ inputs.healthpath }}
           HOSTLESSFILE: ${{ inputs.hostlessfile }}
           FLEET_ENVS: ${{ secrets.FLEET_ENVS }}
+          API_METHOD: ${{ inputs.api_method }}
+          API_PATH: ${{ inputs.api_path }}
+          BODY64: ${{ inputs.api_body_b64 }}
         run: bash scripts/run.sh

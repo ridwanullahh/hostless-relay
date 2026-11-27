@@ -120,8 +120,21 @@ case "$OP" in
     write_result info /tmp/ri.json
     ;;
 
+  api-call)
+    # raw Hostless REST probe: API_METHOD/API_PATH/API_BODY via workflow inputs
+    M="${API_METHOD:-GET}"; P="${API_PATH:-/v1}"; B="${API_BODY:-}"
+    APIB="https://api.hostless.cloud"
+    if [ "$M" = "GET" ]; then
+      curl -s -H "Authorization: Bearer $HOSTLESS_TOKEN" -H "Content-Type: application/json" "$APIB$P" > /tmp/api.json 2>&1 || true
+    else
+      curl -s -X "$M" -H "Authorization: Bearer $HOSTLESS_TOKEN" -H "Content-Type: application/json" -d "${BODY64:+$(printf '%s' "$BODY64" | base64 -d 2>/dev/null)}" "$APIB$P" > /tmp/api.json 2>&1 || true
+    fi
+    head -c 6000 /tmp/api.json; echo
+    write_result api-call /tmp/api.json
+    ;;
+
   *)
-    die "unknown op: $OP (list|create|env-set|deploy|info)"
+    die "unknown op: $OP (list|create|env-set|deploy|info|api-call)"
     ;;
 esac
 
