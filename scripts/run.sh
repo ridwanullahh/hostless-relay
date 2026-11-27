@@ -66,17 +66,21 @@ case "$OP" in
   create)
     mask_env_payload
     clone_repo
+    # ensure the project exists (CLI only auto-creates when NO project exists at all)
+    hostless create project "$PROJECT" -y 2>&1 | tail -3 || true
     cd workclone
-    say "creating app $APP in project $PROJECT from ${REPO}@${BRANCH:-main} workdir=${WORKDIR:-server} dockerfile=${DOCKERFILE:-server/Dockerfile}"
-    YF="${HOSTLESSFILE:-}"
-    EXTRA=()
-    [ -n "$YF" ] && EXTRA+=(--file "$YF")
-    if hostless create app "$APP" --project "$PROJECT" --wait -y "${EXTRA[@]}" 2>&1 | tail -40; then
+    say "creating app $APP in project $PROJECT from ${REPO}@${BRANCH:-main} workdir=${WORKDIR:-server}"
+    if hostless create app "$APP" --project "$PROJECT" --wait -y 2>&1 | tail -40; then
       echo "### created $APP" >> "$SUM"
       hostless info app "$APP" --project "$PROJECT" --json > /tmp/ri.json 2>/dev/null || true
       head -c 4000 /tmp/ri.json 2>/dev/null; echo
+      if [ ! -s /tmp/ri.json ]; then
+        echo "### create produced no app info — treating as failure" >> "$SUM"
+        cd ..; write_result create /dev/null; die "create failed for $APP"
+      fi
     else
       echo "### create failed for $APP (see logs above)" >> "$SUM"
+      cd ..; write_result create /dev/null; die "create failed for $APP"
     fi
     cd ..; write_result create /tmp/ri.json
     ;;
