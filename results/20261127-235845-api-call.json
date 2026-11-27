@@ -1,0 +1,2 @@
+{ "ts":"20261127-235845", "op":"api-call", "app":"", "result": 
+{"message":["Name must start and end with a lowercase letter or number","Name is too long","name should not be empty","gitPlatform must be one of the following values: Github, Gitlab, Bitbucket, Gitea, Forgejo, Gogs","gitPlatform should not be empty","gitRepo should not be empty","gitBranch should not be empty","gitCommitHash should not be empty"],"error":"Bad Request","statusCode":400} }
