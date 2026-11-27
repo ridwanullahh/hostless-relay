@@ -11,15 +11,19 @@ for c in hostless git jq curl; do command -v "$c" >/dev/null || die "missing too
 
 SUM="${GITHUB_STEP_SUMMARY:-/dev/null}"
 
-app_env_payload() { # echo b64 payload of $APP from FLEET_ENVS json
+app_env_payload() { # echo gzip+base64 payload of $APP from FLEET_ENVS json
   [ -n "${APP:-}" ] || return 1
   printf '%s' "${FLEET_ENVS:-}" | jq -r --arg app "$APP" '.[$app] // ""'
+}
+
+decode_env_payload() { # b64 -> gunzip -> K=V lines on stdout
+  printf '%s' "$1" | base64 -d 2>/dev/null | gunzip -c 2>/dev/null
 }
 
 mask_env_payload() { # decode payload, mask every value
   local pay; pay=$(app_env_payload || true)
   [ -n "$pay" ] || return 0
-  printf '%s' "$pay" | base64 -d 2>/dev/null | while IFS= read -r line; do
+  decode_env_payload "$pay" | while IFS= read -r line; do
     case "$line" in ''|\#*) continue;; esac
     v="${line#*=}"
     [ -n "$v" ] && echo "::add-mask::$v"
@@ -82,7 +86,7 @@ case "$OP" in
     [ -n "${APP:-}" ] || die "app required"
     PAY=$(app_env_payload) || die "secret FLEET_ENVS missing"
     [ -n "$PAY" ] || die "no env payload for $APP in FLEET_ENVS"
-    umask 077; TMPENV=$(mktemp); printf '%s' "$PAY" | base64 -d > "$TMPENV"
+    umask 077; TMPENV=$(mktemp); decode_env_payload "$PAY" > "$TMPENV"
     mapfile -t PAIRS < <(grep -vE '^\s*(#|$)' "$TMPENV")
     rm -f "$TMPENV"
     say "setting ${#PAIRS[@]} env vars on $APP (values masked)"
