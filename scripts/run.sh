@@ -55,7 +55,7 @@ case "$OP" in
     hostless list projects --json > /tmp/r1.json 2>/tmp/r1.err || true
     hostless list apps --json > /tmp/r2.json 2>/tmp/r2.err || true
     cat /tmp/r1.json /tmp/r2.json 2>/dev/null | head -c 6000; echo
-    { echo '{"projects":'; cat /tmp/r1.json; echo ',"apps":'; cat /tmp/r2.json; echo '}'; } > /tmp/rp.json 2>/dev/null || echo '{"note":"merge failed"}' > /tmp/rp.json
+    { echo '{"projects":'; cat /tmp/r1.json 2>/dev/null || echo '[]'; echo ',"apps":'; cat /tmp/r2.json 2>/dev/null || echo '[]'; echo '}'; } > /tmp/rp.json 2>/dev/null || echo '{"note":"merge failed"}' > /tmp/rp.json
     write_result list /tmp/rp.json
     ;;
 
@@ -86,7 +86,7 @@ case "$OP" in
     mapfile -t PAIRS < <(grep -vE '^\s*(#|$)' "$TMPENV")
     rm -f "$TMPENV"
     say "setting ${#PAIRS[@]} env vars on $APP (values masked)"
-    hostless env set "${PAIRS[@]}" --app "$APP" --project "$PROJECT" 2>&1 | tail -20
+    hostless env set "${PAIRS[@]}" --app "$APP" --project "$PROJECT" --deploy 2>&1 | tail -20
     hostless env list --app "$APP" --project "$PROJECT" 2>&1 | tail -60
     hostless list apps --json > /tmp/r2.json 2>/dev/null || echo '{}' > /tmp/r2.json
     write_result env-set /tmp/r2.json
