@@ -1,0 +1,82 @@
+name: hostless-ops
+
+on:
+  workflow_dispatch:
+    inputs:
+      op:
+        description: "Operation: list | create | env-set | deploy | info"
+        required: true
+        default: "list"
+      app:
+        description: "Hostless app/service name (e.g. mj-api)"
+        required: false
+        default: ""
+      project:
+        description: "Hostless project (default birrstack-fleet)"
+        required: false
+        default: "birrstack-fleet"
+      repo:
+        description: "Pair repo full name to clone (owner/name) for create/deploy"
+        required: false
+        default: ""
+      branch:
+        description: "Git branch to deploy"
+        required: false
+        default: "main"
+      workdir:
+        description: "Working directory in repo (e.g. server)"
+        required: false
+        default: "server"
+      dockerfile:
+        description: "Dockerfile path relative to repo root"
+        required: false
+        default: "server/Dockerfile"
+      startcmd:
+        description: "Start command override (optional)"
+        required: false
+        default: ""
+      healthpath:
+        description: "Health check http path"
+        required: false
+        default: "/health"
+      hostlessfile:
+        description: "hostless.yaml path override"
+        required: false
+        default: ""
+
+permissions:
+  contents: write
+
+concurrency:
+  group: hostless-ops
+  cancel-in-progress: false
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout relay
+        uses: actions/checkout@v4
+
+      - name: Install Hostless CLI
+        run: |
+          curl -fsSL https://hostless.cloud/install.sh | bash
+          hostless --version || true
+
+      - name: Run op
+        env:
+          HOSTLESS_TOKEN: ${{ secrets.HOSTLESS_TOKEN }}
+          GH_PAT: ${{ secrets.GH_PAT }}
+          OP: ${{ inputs.op }}
+          APP: ${{ inputs.app }}
+          PROJECT: ${{ inputs.project }}
+          REPO: ${{ inputs.repo }}
+          BRANCH: ${{ inputs.branch }}
+          WORKDIR: ${{ inputs.workdir }}
+          DOCKERFILE: ${{ inputs.dockerfile }}
+          STARTCMD: ${{ inputs.startcmd }}
+          HEALTHPATH: ${{ inputs.healthpath }}
+          HOSTLESSFILE: ${{ inputs.hostlessfile }}
+          HOSTLESS_ENVPAY: ${{ secrets[format('HV_{0}_ENVS', inputs.app)] }}
+        run: bash scripts/run.sh
