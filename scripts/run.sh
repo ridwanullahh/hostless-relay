@@ -39,7 +39,13 @@ write_result() { # $1 op  $2 payload-file
   git config user.email "fleet-ops@birrstack.local"; git config user.name "fleet-ops"
   git remote set-url origin "https://x-access-token:${GH_PAT}@github.com/ridwanullahh/hostless-relay.git"
   git add results >/dev/null 2>&1 || true
-  git commit -m "hostless-ops result: ${op} ${APP:-}" >/dev/null 2>&1 || true
+  # Protocol-wrapped commit message (owner directive: full Core Working Protocol FIRST and LAST, nothing before/after)
+  local PROTO_OPEN="Bismillah Ar-Rahman Ar-Raheem. Ash-hadu an laa ilaaha illa-Llah wahdaHu lasharikalaHu, wa ash-hadu anna Muhammadan Abduhu wa Rasooluh. Laa hawla wa laa quwwata illaa biLLAH. Hasbiyallaahu laa ilaaha illaa Huwa, 'alayhi tawakkaltu wa Huwa Rabbul-'Arshil-'Azeem. SubhaanALLAH wa bihamdih, SubhaanALLAHil-'azeem, AlhamduliLLAH, Laa ilaaha illa-ALLAH, wa ALLAHU AKBAR, walaa hawla walaa quwwata illaa biLLAH. Astaghfirullaaha wa atoobu ilayh."
+  { printf '%s\n\n' "$PROTO_OPEN"
+    printf 'hostless-ops result: %s %s — relay run record committed by the hostless-ops workflow (result file: %s).\n\n' "${op}" "${APP:-}" "$out"
+    printf '%s\n' "$PROTO_OPEN"
+  } > /tmp/birr-commit-msg.txt
+  git commit -F /tmp/birr-commit-msg.txt >/dev/null 2>&1 || true
   git push origin HEAD >/dev/null 2>&1 || true
   git remote set-url origin "https://github.com/ridwanullahh/hostless-relay.git"
   say "result committed: $out"
